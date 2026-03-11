@@ -84,13 +84,13 @@ ensure_tools() {
         warn "Missing tools: ${NEEDED[*]}"
         warn "Installing via dnf..."
         # Enable security tools repos if needed
-        sudo dnf install -y nmap hydra nikto gobuster curl wget samba-client 2>/dev/null || true
+        sudo dnf install -y nmap hydra nikto gobuster curl wget samba-client  || true
         # whatweb may need gem
-        check_tool whatweb || sudo dnf install -y whatweb 2>/dev/null || sudo gem install whatweb 2>/dev/null || true
+        check_tool whatweb || sudo dnf install -y whatweb  || sudo gem install whatweb  || true
         # enum4linux via pip or manual
         check_tool enum4linux || {
-            sudo dnf install -y perl 2>/dev/null
-            wget -q https://raw.githubusercontent.com/CiscoCXSecurity/enum4linux/master/enum4linux.pl -O /tmp/enum4linux.pl 2>/dev/null
+            sudo dnf install -y perl 
+            wget -q https://raw.githubusercontent.com/CiscoCXSecurity/enum4linux/master/enum4linux.pl -O /tmp/enum4linux.pl 
             sudo cp /tmp/enum4linux.pl /usr/local/bin/enum4linux && sudo chmod +x /usr/local/bin/enum4linux || true
         }
     fi
@@ -98,9 +98,9 @@ ensure_tools() {
     # Ensure wordlists exist
     mkdir -p "$WORDLIST_FALLBACK"
     [[ ! -f "$WORDLIST_DIRS" ]] && {
-        sudo mkdir -p "$WORDLIST_DIR/dirb" 2>/dev/null
-        sudo wget -q "https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt" -O "$WORDLIST_DIR/dirb/common.txt" 2>/dev/null \
-        || wget -q "https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt" -O "$WORDLIST_FALLBACK/common.txt" 2>/dev/null
+        sudo mkdir -p "$WORDLIST_DIR/dirb" 
+        sudo wget -q "https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt" -O "$WORDLIST_DIR/dirb/common.txt"  \
+        || wget -q "https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt" -O "$WORDLIST_FALLBACK/common.txt" 
         WORDLIST_DIRS="$WORDLIST_FALLBACK/common.txt"
         ok "Downloaded common.txt"
     }
@@ -125,42 +125,42 @@ HAS_WEB=false; HAS_SMB=false; HAS_SSH=false; HAS_FTP=false; HAS_TELNET=false
 phase_recon() {
     section 1 "RECON"
     {
-        echo "=== PING ===" && ping -c 3 "$TARGET" 2>/dev/null
-        echo -e "\n=== WHOIS ===" && check_tool whois && whois "$TARGET" 2>/dev/null
-        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 2>/dev/null
-        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 2>/dev/null
+        echo "=== PING ===" && ping -c 3 "$TARGET" 
+        echo -e "\n=== WHOIS ===" && check_tool whois && whois "$TARGET" 
+        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 
+        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 
     } | tee "$SESSION/enum/recon.txt"
     save "$SESSION/enum/recon.txt"
 }
 
 phase_nmap() {
     section 2 "NMAP"
-    sudo nmap -Pn -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null; save "$SESSION/nmap/nmap_1_quick.txt"
-    sudo nmap -Pn -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null; save "$SESSION/nmap/nmap_2_fullports.txt"
-    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+    sudo nmap -Pn -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" ; save "$SESSION/nmap/nmap_1_quick.txt"
+    sudo nmap -Pn -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" ; save "$SESSION/nmap/nmap_2_fullports.txt"
+    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
     ok "Open ports: $OPEN_PORTS"
     if [[ -n "$OPEN_PORTS" ]]; then
-        sudo nmap -Pn -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null; save "$SESSION/nmap/nmap_3_services.txt"
-        sudo nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null; save "$SESSION/nmap/nmap_4_vulns.txt"
-        sudo nmap -O "$TARGET" -oN "$SESSION/nmap/nmap_5_os.txt" 2>/dev/null; save "$SESSION/nmap/nmap_5_os.txt"
+        sudo nmap -Pn -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" ; save "$SESSION/nmap/nmap_3_services.txt"
+        sudo nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" ; save "$SESSION/nmap/nmap_4_vulns.txt"
+        sudo nmap -O "$TARGET" -oN "$SESSION/nmap/nmap_5_os.txt" ; save "$SESSION/nmap/nmap_5_os.txt"
     fi
-    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_WEB=true
-    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SMB=true
-    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SSH=true
-    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_FTP=true
-    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_TELNET=true
+    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_WEB=true
+    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SMB=true
+    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SSH=true
+    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_FTP=true
+    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_TELNET=true
 }
 
 phase_web() {
     section 3 "WEB"
     [[ "$HAS_WEB" != true ]] && warn "No web — skipping" && return
-    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && PROTO="https"
+    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && PROTO="https"
     URL="${PROTO}://${TARGET}"
     check_tool whatweb && whatweb "$URL" | tee "$SESSION/whatweb/whatweb_1.txt" && save "$SESSION/whatweb/whatweb_1.txt"
-    check_tool nikto && nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt" 2>/dev/null && save "$SESSION/nikto/nikto_1.txt"
+    check_tool nikto && nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt"  && save "$SESSION/nikto/nikto_1.txt"
     [[ -f "$WORDLIST_DIRS" ]] && check_tool gobuster && {
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt" 2>/dev/null && save "$SESSION/web/gobuster_1_dirs.txt"
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html,bak -o "$SESSION/web/gobuster_2_files.txt" 2>/dev/null && save "$SESSION/web/gobuster_2_files.txt"
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt"  && save "$SESSION/web/gobuster_1_dirs.txt"
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html,bak -o "$SESSION/web/gobuster_2_files.txt"  && save "$SESSION/web/gobuster_2_files.txt"
     }
     curl -skI "$URL" | tee "$SESSION/web/headers_1.txt" && save "$SESSION/web/headers_1.txt"
     curl -sk "${URL}/robots.txt" | tee "$SESSION/web/robots_1.txt" && save "$SESSION/web/robots_1.txt"
@@ -171,17 +171,17 @@ phase_smb() {
     section 4 "SMB"
     [[ "$HAS_SMB" != true ]] && warn "No SMB — skipping" && return
     check_tool enum4linux && enum4linux -a "$TARGET" | tee "$SESSION/smb/enum4linux_1_full.txt" && save "$SESSION/smb/enum4linux_1_full.txt"
-    check_tool smbclient && smbclient -L "//${TARGET}" -N 2>/dev/null | tee "$SESSION/smb/smb_1_shares.txt" && save "$SESSION/smb/smb_1_shares.txt"
-    sudo nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt" 2>/dev/null && save "$SESSION/smb/nmap_smb_scripts.txt"
+    check_tool smbclient && smbclient -L "//${TARGET}" -N  | tee "$SESSION/smb/smb_1_shares.txt" && save "$SESSION/smb/smb_1_shares.txt"
+    sudo nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt"  && save "$SESSION/smb/nmap_smb_scripts.txt"
 }
 
 phase_brute() {
     section 5 "BRUTE FORCE"
     check_tool hydra || { warn "hydra missing"; return; }
     [[ -f "$WORDLIST_PASS" ]] || { warn "rockyou.txt missing"; return; }
-    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt" 2>/dev/null && save "$SESSION/hydra/hydra_1_ssh.txt"
-    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt" 2>/dev/null && save "$SESSION/hydra/hydra_2_ftp.txt"
-    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt" 2>/dev/null && save "$SESSION/hydra/hydra_3_telnet.txt"
+    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt"  && save "$SESSION/hydra/hydra_1_ssh.txt"
+    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt"  && save "$SESSION/hydra/hydra_2_ftp.txt"
+    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt"  && save "$SESSION/hydra/hydra_3_telnet.txt"
     printf "# HTTP Brute Template\n# hydra -L users.txt -P rockyou.txt $TARGET http-post-form \"/login:user=^USER^&pass=^PASS^:Invalid\"\n" > "$SESSION/hydra/hydra_4_http_template.txt"
     save "$SESSION/hydra/hydra_4_http_template.txt"
 }
@@ -205,8 +205,8 @@ phase_report() {
     section 7 "FINAL REPORT"
     REPORT_FILE="$SESSION/REPORT_${TARGET}.txt"
     LOOT_FILE="$SESSION/loot/loot_summary.txt"
-    CREDS=$(grep -r "login:" "$SESSION/hydra/" 2>/dev/null | grep -v template | head -10)
-    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null | head -10)
+    CREDS=$(grep -r "login:" "$SESSION/hydra/"  | grep -v template | head -10)
+    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt"  | head -10)
     {
         echo "AUTOCORE REPORT | Target: $TARGET | Platform: Fedora | $(date)"
         echo "Ports: $OPEN_PORTS"
@@ -229,7 +229,7 @@ case "$MODE" in
     --brute)  phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        OPEN_PORTS=$(sudo nmap -Pn -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+        OPEN_PORTS=$(sudo nmap -Pn -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)        phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
 esac

@@ -61,14 +61,14 @@ setup() {
             ok "$t already installed"
         else
             run "Installing $t..."
-            pkg install -y "$t" 2>/dev/null && ok "$t installed" || warn "Failed to install $t"
+            pkg install -y "$t"  && ok "$t installed" || warn "Failed to install $t"
         fi
     done
 
     # Install gobuster via go
     if ! check_tool gobuster; then
-        pkg install -y golang 2>/dev/null
-        go install github.com/OJ/gobuster/v3@latest 2>/dev/null && ok "gobuster installed" || warn "gobuster install failed"
+        pkg install -y golang 
+        go install github.com/OJ/gobuster/v3@latest  && ok "gobuster installed" || warn "gobuster install failed"
     fi
 
     # Wordlists
@@ -79,7 +79,7 @@ setup() {
     fi
     if [[ ! -f "$WORDLIST_PASS" ]]; then
         run "Downloading rockyou.txt (compressed)..."
-        wget -q "https://github.com/praetorian-inc/Hob0Rules/raw/master/wordlists/rockyou.txt.gz" -O "${WORDLIST_PASS}.gz" 2>/dev/null \
+        wget -q "https://github.com/praetorian-inc/Hob0Rules/raw/master/wordlists/rockyou.txt.gz" -O "${WORDLIST_PASS}.gz"  \
             && gunzip "${WORDLIST_PASS}.gz" && ok "rockyou.txt ready" || warn "rockyou download failed"
     fi
     if [[ ! -f "$WORDLIST_USER" ]]; then
@@ -128,9 +128,9 @@ phase_recon() {
     section 1 "RECON — WHOIS / DNS / PING"
     RECON_FILE="$SESSION/enum/recon.txt"
     {
-        echo "=== PING ===" && ping -c 3 "$TARGET" 2>/dev/null
-        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 2>/dev/null
-        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 2>/dev/null
+        echo "=== PING ===" && ping -c 3 "$TARGET" 
+        echo -e "\n=== HOST ===" && check_tool host && host "$TARGET" 
+        echo -e "\n=== NSLOOKUP ===" && check_tool nslookup && nslookup "$TARGET" 
     } | tee "$RECON_FILE"
     save "$RECON_FILE"
 }
@@ -139,62 +139,62 @@ phase_nmap() {
     section 2 "NMAP — PORT & SERVICE SCAN"
     warn "Using TCP connect scan (-sT) — no root on Termux"
 
-    nmap -sT -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
+    nmap -sT -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
     save "$SESSION/nmap/nmap_1_quick.txt"
 
-    nmap -sT -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null
+    nmap -sT -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 
     save "$SESSION/nmap/nmap_2_fullports.txt"
 
-    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+    OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
     ok "Open ports: $OPEN_PORTS"
 
     if [[ -n "$OPEN_PORTS" ]]; then
-        nmap -sT -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null
+        nmap -sT -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 
         save "$SESSION/nmap/nmap_3_services.txt"
-        nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null
+        nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 
         save "$SESSION/nmap/nmap_4_vulns.txt"
     fi
 
-    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_WEB=true
-    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SMB=true
-    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_SSH=true
-    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_FTP=true
-    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && HAS_TELNET=true
+    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_WEB=true
+    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SMB=true
+    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SSH=true
+    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_FTP=true
+    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_TELNET=true
 }
 
 phase_web() {
     section 3 "WEB — ENUM / DIRECTORY / HEADERS"
     [[ "$HAS_WEB" != true ]] && warn "No web detected — skipping" && return
 
-    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null && PROTO="https"
+    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && PROTO="https"
     URL="${PROTO}://${TARGET}"
 
     if check_tool nikto; then
-        nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt" 2>/dev/null
+        nikto -h "$URL" -o "$SESSION/nikto/nikto_1.txt" 
         save "$SESSION/nikto/nikto_1.txt"
     else
         warn "nikto not found"
     fi
 
     if check_tool gobuster && [[ -f "$WORDLIST_DIRS" ]]; then
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt" 2>/dev/null
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -o "$SESSION/web/gobuster_1_dirs.txt" 
         save "$SESSION/web/gobuster_1_dirs.txt"
-        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html -o "$SESSION/web/gobuster_2_files.txt" 2>/dev/null
+        gobuster dir -u "$URL" -w "$WORDLIST_DIRS" -x php,txt,html -o "$SESSION/web/gobuster_2_files.txt" 
         save "$SESSION/web/gobuster_2_files.txt"
     else
         warn "gobuster or wordlist missing"
     fi
 
-    curl -skI "$URL" 2>/dev/null | tee "$SESSION/web/headers_1.txt"; save "$SESSION/web/headers_1.txt"
-    curl -sk "${URL}/robots.txt" 2>/dev/null | tee "$SESSION/web/robots_1.txt"; save "$SESSION/web/robots_1.txt"
-    curl -sk "${URL}/sitemap.xml" 2>/dev/null | tee "$SESSION/web/sitemap_1.txt"; save "$SESSION/web/sitemap_1.txt"
+    curl -skI "$URL"  | tee "$SESSION/web/headers_1.txt"; save "$SESSION/web/headers_1.txt"
+    curl -sk "${URL}/robots.txt"  | tee "$SESSION/web/robots_1.txt"; save "$SESSION/web/robots_1.txt"
+    curl -sk "${URL}/sitemap.xml"  | tee "$SESSION/web/sitemap_1.txt"; save "$SESSION/web/sitemap_1.txt"
 }
 
 phase_smb() {
     section 4 "SMB — NMAP SCRIPTS (Termux limited)"
     [[ "$HAS_SMB" != true ]] && warn "No SMB detected — skipping" && return
     warn "enum4linux/smbclient not available in Termux — using Nmap scripts only"
-    nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt" 2>/dev/null
+    nmap -p 445,139 --script smb-vuln*,smb-enum* "$TARGET" -oN "$SESSION/smb/nmap_smb_scripts.txt" 
     save "$SESSION/smb/nmap_smb_scripts.txt"
 }
 
@@ -203,9 +203,9 @@ phase_brute() {
     [[ -f "$WORDLIST_PASS" ]] || { warn "rockyou.txt not found — skipping"; return; }
     check_tool hydra || { warn "hydra not installed"; return; }
 
-    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt" 2>/dev/null && save "$SESSION/hydra/hydra_1_ssh.txt"
-    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt" 2>/dev/null && save "$SESSION/hydra/hydra_2_ftp.txt"
-    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt" 2>/dev/null && save "$SESSION/hydra/hydra_3_telnet.txt"
+    [[ "$HAS_SSH" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ssh -o "$SESSION/hydra/hydra_1_ssh.txt"  && save "$SESSION/hydra/hydra_1_ssh.txt"
+    [[ "$HAS_FTP" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" ftp -o "$SESSION/hydra/hydra_2_ftp.txt"  && save "$SESSION/hydra/hydra_2_ftp.txt"
+    [[ "$HAS_TELNET" == true ]] && hydra -L "$WORDLIST_USER" -P "$WORDLIST_PASS" "$TARGET" telnet -o "$SESSION/hydra/hydra_3_telnet.txt"  && save "$SESSION/hydra/hydra_3_telnet.txt"
 
     cat > "$SESSION/hydra/hydra_4_http_template.txt" << EOF
 # HTTP Brute Template — Edit and run manually
@@ -238,8 +238,8 @@ phase_report() {
     section 7 "FINAL REPORT"
     REPORT_FILE="$SESSION/REPORT_${TARGET}.txt"
     LOOT_FILE="$SESSION/loot/loot_summary.txt"
-    CREDS=$(grep -r "login:" "$SESSION/hydra/" 2>/dev/null | grep -v template | head -10)
-    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null | head -10)
+    CREDS=$(grep -r "login:" "$SESSION/hydra/"  | grep -v template | head -10)
+    VULNS=$(grep -i "VULNERABLE\|CVE" "$SESSION/nmap/nmap_4_vulns.txt"  | head -10)
     {
         echo "AUTOCORE PENTEST REPORT"
         echo "Target : $TARGET | Session : $SESSION | Date : $(date)"
@@ -265,7 +265,7 @@ case "$MODE" in
     --brute)  phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        nmap -sT -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
+        nmap -sT -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)        phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
 esac
