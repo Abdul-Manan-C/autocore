@@ -108,12 +108,12 @@ phase_recon() {
 
 phase_nmap() {
     section 2 "NMAP"
-    sudo nmap -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null; save "$SESSION/nmap/nmap_1_quick.txt"
-    sudo nmap -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null; save "$SESSION/nmap/nmap_2_fullports.txt"
+    sudo nmap -Pn -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null; save "$SESSION/nmap/nmap_1_quick.txt"
+    sudo nmap -Pn -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null; save "$SESSION/nmap/nmap_2_fullports.txt"
     OPEN_PORTS=$(grep "^[0-9]" "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
     ok "Open ports: $OPEN_PORTS"
     if [[ -n "$OPEN_PORTS" ]]; then
-        sudo nmap -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null; save "$SESSION/nmap/nmap_3_services.txt"
+        sudo nmap -Pn -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null; save "$SESSION/nmap/nmap_3_services.txt"
         sudo nmap --script vuln -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_4_vulns.txt" 2>/dev/null; save "$SESSION/nmap/nmap_4_vulns.txt"
         sudo nmap -O "$TARGET" -oN "$SESSION/nmap/nmap_5_os.txt" 2>/dev/null; save "$SESSION/nmap/nmap_5_os.txt"
     fi
@@ -195,7 +195,7 @@ case "$MODE" in
     --brute)  phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        OPEN_PORTS=$(sudo nmap -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+        OPEN_PORTS=$(sudo nmap -Pn -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)        phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
 esac

@@ -117,13 +117,13 @@ phase_nmap() {
     section 2 "NMAP — PORT & SERVICE SCAN"
 
     # Quick scan
-    run "nmap -sS -T4 --top-ports 1000 $TARGET"
-    sudo nmap -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
+    run "nmap -Pn -sS -T4 --top-ports 1000 $TARGET"
+    sudo nmap -Pn -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null
     save "$SESSION/nmap/nmap_1_quick.txt"
 
     # Full port scan
-    run "nmap -sS -T4 -p- $TARGET"
-    sudo nmap -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null
+    run "nmap -Pn -sS -T4 -p- $TARGET"
+    sudo nmap -Pn -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 2>/dev/null
     save "$SESSION/nmap/nmap_2_fullports.txt"
 
     # Extract open ports
@@ -132,8 +132,8 @@ phase_nmap() {
 
     # Service detection
     if [[ -n "$OPEN_PORTS" ]]; then
-        run "nmap -sS -sV -sC -p${OPEN_PORTS} $TARGET"
-        sudo nmap -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null
+        run "nmap -Pn -sS -sV -sC -p${OPEN_PORTS} $TARGET"
+        sudo nmap -Pn -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 2>/dev/null
         save "$SESSION/nmap/nmap_3_services.txt"
 
         # Vuln scripts
@@ -365,7 +365,7 @@ case "$MODE" in
         phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        OPEN_PORTS=$(sudo nmap -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+        OPEN_PORTS=$(sudo nmap -Pn -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 2>/dev/null | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)
         phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;

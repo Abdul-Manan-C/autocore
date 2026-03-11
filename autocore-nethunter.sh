@@ -106,7 +106,7 @@ HAS_WEB=false; HAS_SMB=false; HAS_SSH=false; HAS_FTP=false; HAS_TELNET=false
 
 # Detect if SYN scan may work (NH rootless sometimes has cap_net_raw)
 NMAP_SCAN="-sT"
-nmap -sS --version-trace 127.0.0.1 &>/dev/null && NMAP_SCAN="-sS" && ok "SYN scan (-sS) available" || warn "Falling back to TCP connect scan (-sT)"
+nmap -Pn -sS --version-trace 127.0.0.1 &>/dev/null && NMAP_SCAN="-sS" && ok "SYN scan (-sS) available" || warn "Falling back to TCP connect scan (-sT)"
 
 phase_recon() {
     section 1 "RECON — WHOIS / DNS / PING"
