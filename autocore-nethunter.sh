@@ -135,17 +135,17 @@ phase_nmap() {
         save "$SESSION/nmap/nmap_4_vulns.txt"
     fi
 
-    grep -q "80/open\|443/open\|8080/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_WEB=true
-    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SMB=true
-    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SSH=true
-    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_FTP=true
-    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_TELNET=true
+    grep -q "^80/|^443/|^8080/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_WEB=true
+    grep -q "^445/|^139/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_SMB=true
+    grep -q "^22/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_SSH=true
+    grep -q "^21/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_FTP=true
+    grep -q "^23/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_TELNET=true
 }
 
 phase_web() {
     section 3 "WEB — ENUM"
     [[ "$HAS_WEB" != true ]] && warn "No web — skipping" && return
-    PROTO="http"; grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && PROTO="https"
+    PROTO="http"; grep -q "^443/" "$SESSION/nmap/nmap_2_fullports.txt" && PROTO="https"
     URL="${PROTO}://${TARGET}"
 
     check_tool whatweb && whatweb "$URL" | tee "$SESSION/whatweb/whatweb_1.txt" && save "$SESSION/whatweb/whatweb_1.txt"

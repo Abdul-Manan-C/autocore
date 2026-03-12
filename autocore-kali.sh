@@ -117,13 +117,13 @@ phase_nmap() {
     section 2 "NMAP — PORT & SERVICE SCAN"
 
     # Quick scan
-    run "nmap -Pn -sS -T4 --top-ports 1000 $TARGET"
-    sudo nmap -Pn -sS -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
+    run "nmap -Pn -sT -T4 --top-ports 1000 $TARGET"
+    sudo nmap -Pn -sT -T4 --top-ports 1000 "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt" 
     save "$SESSION/nmap/nmap_1_quick.txt"
 
     # Full port scan
-    run "nmap -Pn -sS -T4 -p- $TARGET"
-    sudo nmap -Pn -sS -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 
+    run "nmap -Pn -sT -T4 -p- $TARGET"
+    sudo nmap -Pn -sT -T4 -p- "$TARGET" -oN "$SESSION/nmap/nmap_2_fullports.txt" 
     save "$SESSION/nmap/nmap_2_fullports.txt"
 
     # Extract open ports
@@ -132,8 +132,8 @@ phase_nmap() {
 
     # Service detection
     if [[ -n "$OPEN_PORTS" ]]; then
-        run "nmap -Pn -sS -sV -sC -p${OPEN_PORTS} $TARGET"
-        sudo nmap -Pn -sS -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 
+        run "nmap -Pn -sT -sV -sC -p${OPEN_PORTS} $TARGET"
+        sudo nmap -Pn -sT -sV -sC -p"${OPEN_PORTS}" "$TARGET" -oN "$SESSION/nmap/nmap_3_services.txt" 
         save "$SESSION/nmap/nmap_3_services.txt"
 
         # Vuln scripts
@@ -148,11 +148,11 @@ phase_nmap() {
     fi
 
     # Detect services
-    grep -q "80/open\|443/open\|8080/open\|8443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_WEB=true
-    grep -q "445/open\|139/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SMB=true
-    grep -q "22/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_SSH=true
-    grep -q "21/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_FTP=true
-    grep -q "23/open" "$SESSION/nmap/nmap_2_fullports.txt"  && HAS_TELNET=true
+    grep -q "^80/|^443/|^8080/|^8443/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_WEB=true
+    grep -q "^445/|^139/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_SMB=true
+    grep -q "^22/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_SSH=true
+    grep -q "^21/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_FTP=true
+    grep -q "^23/" "$SESSION/nmap/nmap_2_fullports.txt" && HAS_TELNET=true
 
     [[ "$HAS_WEB" == true ]] && ok "Web service detected"
     [[ "$HAS_SMB" == true ]] && ok "SMB service detected"
@@ -167,7 +167,7 @@ phase_web() {
     [[ "$HAS_WEB" != true ]] && warn "No web service detected — skipping" && return
 
     WEBPORT="80"
-    grep -q "443/open" "$SESSION/nmap/nmap_2_fullports.txt"  && WEBPORT="443"
+    grep -q "^443/" "$SESSION/nmap/nmap_2_fullports.txt" && WEBPORT="443"
     PROTO="http"; [[ "$WEBPORT" == "443" ]] && PROTO="https"
     URL="${PROTO}://${TARGET}"
 
@@ -365,7 +365,7 @@ case "$MODE" in
         phase_recon; phase_nmap; phase_brute ;;
     --stealth)
         phase_recon
-        OPEN_PORTS=$(sudo nmap -Pn -sS -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
+        OPEN_PORTS=$(sudo nmap -Pn -sT -T2 -p- "$TARGET" -oN "$SESSION/nmap/nmap_1_quick.txt"  | grep "open" | awk -F/ '{print $1}' | tr '\n' ',')
         phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
     *)
         phase_recon; phase_nmap; phase_web; phase_smb; phase_brute; phase_msf; phase_report ;;
