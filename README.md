@@ -12,7 +12,7 @@
 ![Bash](https://img.shields.io/badge/Shell-Bash-green?logo=gnu-bash&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Android-informational)
-![Version](https://img.shields.io/badge/Version-1.0-red)
+![Version](https://img.shields.io/badge/Version-2.0-red)
 ![CTF](https://img.shields.io/badge/Use-CTF%20%7C%20TryHackMe%20%7C%20Lab-yellow)
 
 **Automated bash-based pentest recon & enumeration orchestrator**
